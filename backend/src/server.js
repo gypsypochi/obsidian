@@ -1,6 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 
+const materialesRoutes = require("./routes/materiales");
+
 const app = express();
 const PORT = process.env.PORT || 3001;
 
@@ -11,6 +13,9 @@ app.use(express.json());
 app.get("/health", (req, res) => {
   res.json({ ok: true, name: "obsidian-api", time: new Date().toISOString() });
 });
+
+// Rutas
+app.use("/materiales", materialesRoutes);
 
 app.listen(PORT, () => {
   console.log(`✅ Obsidian API running on http://localhost:${PORT}`);
