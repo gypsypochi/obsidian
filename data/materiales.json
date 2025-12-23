@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "id": "mat-1766518351924",
+    "nombre": "vinilo mate",
+    "categoria": "vinilos",
+    "stock": 15,
+    "unidad": "planchas"
+  },
+  {
+    "id": "mat-1766518457021",
+    "nombre": "vinilo brillante",
+    "categoria": "vinilos",
+    "stock": 10,
+    "unidad": "planchas"
+  }
+]
