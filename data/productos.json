@@ -1,14 +1,5 @@
 [
   {
-    "id": "prod-1766527328872",
-    "nombre": "sticker pack 10u",
-    "categoria": "stickers",
-    "precio": 1000,
-    "stock": 20,
-    "unidad": "pack",
-    "proveedorId": "shein"
-  },
-  {
     "id": "prod-1766527364936",
     "nombre": "cuaderno a5",
     "categoria": "cuadernos",

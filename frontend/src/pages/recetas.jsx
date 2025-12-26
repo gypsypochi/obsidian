@@ -21,6 +21,7 @@ export default function Recetas() {
     materialId: "",
     cantidad: 0,
     unidad: "",
+    tipoProduccion: "unidad", // NUEVO
   });
 
   // Filtro (por productoId o nombre)
@@ -33,6 +34,7 @@ export default function Recetas() {
     materialId: "",
     cantidad: 0,
     unidad: "",
+    tipoProduccion: "unidad", // NUEVO
   });
 
   async function loadAll() {
@@ -83,6 +85,7 @@ export default function Recetas() {
         materialId: "",
         cantidad: 0,
         unidad: "",
+        tipoProduccion: "unidad",
       });
       await loadAll();
     } catch (e) {
@@ -97,6 +100,7 @@ export default function Recetas() {
       materialId: r.materialId || "",
       cantidad: Number(r.cantidad || 0),
       unidad: r.unidad || "",
+      tipoProduccion: r.tipoProduccion || "unidad",
     });
   }
 
@@ -107,6 +111,7 @@ export default function Recetas() {
       materialId: "",
       cantidad: 0,
       unidad: "",
+      tipoProduccion: "unidad",
     });
   }
 
@@ -169,9 +174,21 @@ export default function Recetas() {
     });
   }, [recetas, q, productos]);
 
+  function labelTipo(tipo) {
+    if (tipo === "lote") return "Por lote/plancha";
+    return "Por unidad";
+  }
+
   return (
     <div>
       <h1>Recetas (Producto ↔ Materiales)</h1>
+
+      <p>
+        <strong>Tipo de producción:</strong> usar{" "}
+        <em>"Por unidad"</em> para cuadernos u otros productos fijos,
+        y <em>"Por lote/plancha"</em> para stickers u otros que trabajes
+        por tirada.
+      </p>
 
       {loading && <p>Cargando...</p>}
       {error && <p>{error}</p>}
@@ -192,6 +209,19 @@ export default function Recetas() {
                 {p.nombre} ({p.id})
               </option>
             ))}
+          </select>
+        </div>
+
+        <div>
+          <label>Tipo de producción *</label>
+          <select
+            name="tipoProduccion"
+            value={form.tipoProduccion}
+            onChange={onChange}
+            required
+          >
+            <option value="unidad">Por unidad (cuadernos, etc.)</option>
+            <option value="lote">Por lote/plancha (stickers, etc.)</option>
           </select>
         </div>
 
@@ -228,7 +258,7 @@ export default function Recetas() {
             name="unidad"
             value={form.unidad}
             onChange={onChange}
-            placeholder="Ej: planchas / m / u"
+            placeholder="Ej: planchas / hojas / u"
           />
         </div>
 
@@ -253,6 +283,7 @@ export default function Recetas() {
         <thead>
           <tr>
             <th>Producto</th>
+            <th>Tipo</th>
             <th>Material</th>
             <th>Cantidad</th>
             <th>Unidad</th>
@@ -288,6 +319,22 @@ export default function Recetas() {
                       <div>{prod?.nombre || "(producto no encontrado)"}</div>
                       <small>{r.productoId}</small>
                     </>
+                  )}
+                </td>
+
+                <td>
+                  {isEditing ? (
+                    <select
+                      name="tipoProduccion"
+                      value={editForm.tipoProduccion}
+                      onChange={onEditChange}
+                      required
+                    >
+                      <option value="unidad">Por unidad</option>
+                      <option value="lote">Por lote/plancha</option>
+                    </select>
+                  ) : (
+                    labelTipo(r.tipoProduccion || "unidad")
                   )}
                 </td>
 
@@ -366,7 +413,7 @@ export default function Recetas() {
 
           {!loading && recetasFiltradas.length === 0 && (
             <tr>
-              <td colSpan="5">No hay recetas.</td>
+              <td colSpan="6">No hay recetas.</td>
             </tr>
           )}
         </tbody>

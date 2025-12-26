@@ -10,7 +10,7 @@ router.get("/", (req, res) => {
 
 // POST /recetas
 router.post("/", (req, res) => {
-  const { productoId, materialId, cantidad, unidad } = req.body;
+  const { productoId, materialId, cantidad, unidad, tipoProduccion } = req.body;
 
   if (!productoId || String(productoId).trim() === "") {
     return res.status(400).json({ error: "productoId es obligatorio" });
@@ -24,6 +24,13 @@ router.post("/", (req, res) => {
     return res.status(400).json({ error: "Cantidad debe ser numérica" });
   }
 
+  let tipo = tipoProduccion ? String(tipoProduccion).trim() : "unidad";
+  if (tipo !== "unidad" && tipo !== "lote") {
+    return res
+      .status(400)
+      .json({ error: "tipoProduccion debe ser 'unidad' o 'lote'" });
+  }
+
   const recetas = readRecetas();
 
   const nuevaReceta = {
@@ -32,6 +39,7 @@ router.post("/", (req, res) => {
     materialId: String(materialId).trim(),
     cantidad: cantidad ?? 0,
     unidad: unidad ? String(unidad).trim() : "",
+    tipoProduccion: tipo, // NUEVO
   };
 
   recetas.push(nuevaReceta);
@@ -43,7 +51,7 @@ router.post("/", (req, res) => {
 // PUT /recetas/:id
 router.put("/:id", (req, res) => {
   const { id } = req.params;
-  const { productoId, materialId, cantidad, unidad } = req.body;
+  const { productoId, materialId, cantidad, unidad, tipoProduccion } = req.body;
 
   const recetas = readRecetas();
   const index = recetas.findIndex((r) => r.id === id);
@@ -68,6 +76,17 @@ router.put("/:id", (req, res) => {
     return res.status(400).json({ error: "Cantidad debe ser numérica" });
   }
 
+  let tipoActual = recetas[index].tipoProduccion || "unidad";
+  let tipo = tipoProduccion !== undefined
+    ? String(tipoProduccion).trim()
+    : tipoActual;
+
+  if (tipo !== "unidad" && tipo !== "lote") {
+    return res
+      .status(400)
+      .json({ error: "tipoProduccion debe ser 'unidad' o 'lote'" });
+  }
+
   const actual = recetas[index];
 
   const actualizada = {
@@ -83,6 +102,7 @@ router.put("/:id", (req, res) => {
     cantidad: cantidad !== undefined ? cantidad : actual.cantidad,
     unidad:
       unidad !== undefined ? String(unidad).trim() : actual.unidad,
+    tipoProduccion: tipo,
   };
 
   recetas[index] = actualizada;
