@@ -7,8 +7,9 @@ import Proveedores from "./pages/proveedores.jsx";
 import Productos from "./pages/productos.jsx";
 import Nav from "./components/nav.jsx";
 import Recetas from "./pages/recetas.jsx";
-// NUEVO
 import Produccion from "./pages/produccion.jsx";
+// NUEVO
+import Historial from "./pages/historial.jsx";
 
 export default function App() {
   return (
@@ -21,8 +22,9 @@ export default function App() {
         <Route path="/proveedores" element={<Proveedores />} />
         <Route path="/productos" element={<Productos />} />
         <Route path="/recetas" element={<Recetas />} />
-        {/* NUEVO */}
         <Route path="/produccion" element={<Produccion />} />
+        {/* NUEVO */}
+        <Route path="/historial" element={<Historial />} />
         <Route path="*" element={<p>404 – Página no encontrada</p>} />
       </Routes>
     </>

@@ -34,9 +34,13 @@ export default function Nav() {
         Recetas
       </NavLink>
 
-      {/* NUEVO */}
       <NavLink to="/produccion" style={linkStyle}>
         Producción
+      </NavLink>
+
+      {/* NUEVO */}
+      <NavLink to="/historial" style={linkStyle}>
+        Historial
       </NavLink>
     </nav>
   );

@@ -10,9 +10,11 @@ const {
   readRecetas,
   readProducciones,
   writeProducciones,
+  readHistorialStock,
+  writeHistorialStock,
 } = require("../utils/fileDB");
 
-// GET /producciones - listar historial
+// GET /producciones - listar historial de producciones
 router.get("/", (req, res) => {
   try {
     const producciones = readProducciones();
@@ -85,9 +87,7 @@ router.post("/", (req, res) => {
         );
       }
 
-      // factor = cantidad de producción:
-      // - si es 'unidad' => cantidad de unidades
-      // - si es 'lote'   => cantidad de lotes/planchas
+      // factor = cantidad de producción (unidades o lotes)
       const factor = cantidad;
       const cantidadNecesaria = (r.cantidad || 0) * factor;
 
@@ -128,6 +128,8 @@ router.post("/", (req, res) => {
     // Aumentar stock del producto
     const productoIndex = productos.findIndex((p) => p.id === productoId);
 
+    const stockAntes = productos[productoIndex].stock || 0;
+
     let incrementoStock;
     if (tipoProduccion === "lote") {
       // En lote, sumamos la cantidad real de unidades buenas
@@ -137,19 +139,19 @@ router.post("/", (req, res) => {
       incrementoStock = cantidad;
     }
 
-    productos[productoIndex].stock =
-      (productos[productoIndex].stock || 0) + incrementoStock;
+    const stockDespues = stockAntes + incrementoStock;
+    productos[productoIndex].stock = stockDespues;
 
-    // Guardar cambios
+    // Guardar cambios en materiales y productos
     writeMaterials(materiales);
     writeProductos(productos);
 
-    // Registrar la producción
+    // Registrar la producción en producciones.json
     const producciones = readProducciones();
     const nuevaProduccion = {
       id: `prodop-${Date.now()}`,
       productoId,
-      cantidad,           // unidades o lotes, según tipoProduccion
+      cantidad, // unidades o lotes, según tipoProduccion
       tipoProduccion,
       unidadesBuenas: tipoProduccion === "lote" ? incrementoStock : null,
       incrementoStock,
@@ -162,6 +164,21 @@ router.post("/", (req, res) => {
 
     producciones.push(nuevaProduccion);
     writeProducciones(producciones);
+
+    // 📌 NUEVO: registrar movimiento de stock en historial-stock.json
+    const historial = readHistorialStock();
+    const nuevoMovimiento = {
+      id: `mov-${Date.now()}`,
+      productoId,
+      tipoMovimiento: "produccion",
+      cantidad: incrementoStock, // cuánto cambió el stock (+)
+      stockAntes,
+      stockDespues,
+      produccionId: nuevaProduccion.id,
+      fecha: nuevaProduccion.fecha,
+    };
+    historial.push(nuevoMovimiento);
+    writeHistorialStock(historial);
 
     res.status(201).json({
       produccion: nuevaProduccion,

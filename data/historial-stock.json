@@ -1,0 +1,12 @@
+[
+  {
+    "id": "mov-1766771430585",
+    "productoId": "prod-1766768898699",
+    "tipoMovimiento": "produccion",
+    "cantidad": 4,
+    "stockAntes": 34,
+    "stockDespues": 38,
+    "produccionId": "prodop-1766771430584",
+    "fecha": "2025-12-26T17:50:30.584Z"
+  }
+]

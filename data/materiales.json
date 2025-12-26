@@ -24,14 +24,14 @@
     "id": "mat-1766768815323",
     "nombre": "Hoja imantada a4",
     "categoria": "iman",
-    "stock": 2,
+    "stock": 1,
     "unidad": "hoja"
   },
   {
     "id": "mat-1766768854090",
     "nombre": "papel fotografico 230gr",
     "categoria": "papel fotografico",
-    "stock": 97,
+    "stock": 96,
     "unidad": "hoja"
   }
 ]

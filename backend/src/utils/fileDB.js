@@ -7,6 +7,10 @@ const proveedoresPath = path.join(__dirname, "../../../data/proveedores.json");
 const productosPath = path.join(__dirname, "../../../data/productos.json");
 const recetasPath = path.join(__dirname, "../../../data/recetas.json");
 const produccionesPath = path.join(__dirname, "../../../data/producciones.json");
+const historialStockPath = path.join(
+  __dirname,
+  "../../../data/historial-stock.json"
+);
 
 function readJson(filePath) {
   const raw = fs.readFileSync(filePath, "utf-8");
@@ -53,18 +57,38 @@ function writeRecetas(recetas) {
   writeJson(recetasPath, recetas);
 }
 
-// --- PRODUCCIONES (NUEVO, BLINDADO) ---
+// --- PRODUCCIONES (BLINDADO) ---
 function readProducciones() {
   try {
     return readJson(produccionesPath);
   } catch (err) {
-    console.error("Error leyendo producciones.json, devolviendo []:", err.message);
+    console.error(
+      "Error leyendo producciones.json, devolviendo []:",
+      err.message
+    );
     return [];
   }
 }
 
 function writeProducciones(producciones) {
   writeJson(produccionesPath, producciones || []);
+}
+
+// --- HISTORIAL DE STOCK (NUEVO) ---
+function readHistorialStock() {
+  try {
+    return readJson(historialStockPath);
+  } catch (err) {
+    console.error(
+      "Error leyendo historial-stock.json, devolviendo []:",
+      err.message
+    );
+    return [];
+  }
+}
+
+function writeHistorialStock(historial) {
+  writeJson(historialStockPath, historial || []);
 }
 
 module.exports = {
@@ -78,4 +102,6 @@ module.exports = {
   writeRecetas,
   readProducciones,
   writeProducciones,
+  readHistorialStock,
+  writeHistorialStock,
 };

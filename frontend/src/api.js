@@ -189,3 +189,10 @@ export async function createProduccion(produccion) {
 
   return data;
 }
+
+export async function getHistorialStock() {
+  const res = await fetch(`${API_URL}/historial`);
+  if (!res.ok) throw new Error("Error al cargar historial de stock");
+  return res.json();
+}
+
