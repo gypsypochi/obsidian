@@ -1,5 +1,7 @@
 // frontend/src/components/nav.jsx
 import { NavLink } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { getPedidos } from "../api";
 
 const linkStyle = ({ isActive }) => ({
   marginRight: 12,
@@ -9,6 +11,35 @@ const linkStyle = ({ isActive }) => ({
 });
 
 export default function Nav() {
+  const [totalPedidosActivos, setTotalPedidosActivos] = useState(0);
+
+  useEffect(() => {
+    async function loadPedidos() {
+      try {
+        const data = await getPedidos();
+
+        // activos = todos menos entregado / cancelado
+        const activos = data.filter(
+          (ped) => ped.estado !== "entregado" && ped.estado !== "cancelado"
+        ).length;
+
+        setTotalPedidosActivos(activos);
+      } catch (e) {
+        console.error("Error cargando pedidos para nav:", e);
+      }
+    }
+
+    // primera carga
+    loadPedidos();
+
+    // refrescar cada 15s para que no quede viejo
+    const intervalId = setInterval(loadPedidos, 15000);
+
+    return () => clearInterval(intervalId);
+  }, []);
+
+  const pedidosLabel = `Pedidos (${totalPedidosActivos})`;
+
   return (
     <nav
       style={{
@@ -46,9 +77,8 @@ export default function Nav() {
         Ventas
       </NavLink>
 
-      {/* NUEVO */}
       <NavLink to="/pedidos" style={linkStyle}>
-        Pedidos
+        {pedidosLabel}
       </NavLink>
     </nav>
   );

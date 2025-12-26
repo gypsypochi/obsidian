@@ -36,7 +36,15 @@ router.get("/", (req, res) => {
 // POST /pedidos - crear nuevo pedido
 router.post("/", (req, res) => {
   try {
-    const { cliente, productoId, cantidad, notas } = req.body;
+    const {
+      cliente,
+      productoId,
+      cantidad,
+      notas,
+      fechaLimite,
+      canal,
+      urgente,
+    } = req.body;
 
     if (!productoId) {
       return res.status(400).json({ error: "productoId es obligatorio" });
@@ -70,6 +78,9 @@ router.post("/", (req, res) => {
       notas: (notas || "").toString().trim(),
       fechaCreacion: new Date().toISOString(),
       fechaEntrega: null,
+      fechaLimite: fechaLimite ? new Date(fechaLimite).toISOString() : null,
+      canal: (canal || "").toString().trim(), // libre: Instagram, Feria, Local, etc.
+      urgente: Boolean(urgente), // NUEVO flag
       ventasIds: [],
     };
 
@@ -83,11 +94,11 @@ router.post("/", (req, res) => {
   }
 });
 
-// PUT /pedidos/:id - actualizar (estado / cliente / notas)
+// PUT /pedidos/:id - actualizar (estado / cliente / notas / canal / urgente)
 router.put("/:id", (req, res) => {
   try {
     const { id } = req.params;
-    const { estado, cliente, notas } = req.body;
+    const { estado, cliente, notas, canal, urgente } = req.body;
 
     const pedidos = readPedidos();
     const idx = pedidos.findIndex((p) => p.id === id);
@@ -104,6 +115,12 @@ router.put("/:id", (req, res) => {
     }
     if (notas !== undefined) {
       pedido.notas = notas.toString().trim();
+    }
+    if (canal !== undefined) {
+      pedido.canal = canal.toString().trim();
+    }
+    if (urgente !== undefined) {
+      pedido.urgente = Boolean(urgente);
     }
 
     // Si no se cambia estado, solo guardamos cambios básicos

@@ -22,6 +22,9 @@ export default function Pedidos() {
     productoId: "",
     cantidad: 1,
     notas: "",
+    fechaLimite: "",
+    canal: "",
+    urgente: false,
   });
 
   async function load() {
@@ -46,10 +49,15 @@ export default function Pedidos() {
   }, []);
 
   function onFormChange(e) {
-    const { name, value } = e.target;
+    const { name, value, type, checked } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]: name === "cantidad" ? Number(value) : value,
+      [name]:
+        type === "checkbox"
+          ? checked
+          : name === "cantidad"
+          ? Number(value)
+          : value,
     }));
   }
 
@@ -74,6 +82,9 @@ export default function Pedidos() {
         productoId: form.productoId,
         cantidad: form.cantidad,
         notas: form.notas,
+        fechaLimite: form.fechaLimite || null,
+        canal: form.canal || null,
+        urgente: form.urgente,
       };
 
       await createPedido(payload);
@@ -84,6 +95,9 @@ export default function Pedidos() {
         productoId: "",
         cantidad: 1,
         notas: "",
+        fechaLimite: "",
+        canal: "",
+        urgente: false,
       });
 
       await load();
@@ -92,27 +106,88 @@ export default function Pedidos() {
     }
   }
 
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const hoyMs = hoy.getTime();
+
   const pedidosEnriquecidos = useMemo(() => {
     const mapaProductos = new Map(productos.map((p) => [p.id, p]));
-    const lista = pedidos.map((ped) => {
+    let lista = pedidos.map((ped) => {
       const item = ped.items && ped.items[0];
       const prod = item ? mapaProductos.get(item.productoId) : null;
+
       return {
         ...ped,
         productoNombre: prod ? prod.nombre : item?.productoId,
         cantidad: item?.cantidad ?? 0,
+        urgente: Boolean(ped.urgente),
       };
     });
 
-    // orden por fecha (nuevos arriba)
+    // Filtrar: solo pedidos activos (no entregados ni cancelados)
+    lista = lista.filter(
+      (p) => p.estado !== "entregado" && p.estado !== "cancelado"
+    );
+
+    // Ordenar:
+    // 1) urgentes primero
+    // 2) por fecha límite (más cercana)
+    // 3) sin fecha límite, por fecha de creación (más nuevos arriba)
     lista.sort((a, b) => {
-      const fa = new Date(a.fechaCreacion).getTime();
-      const fb = new Date(b.fechaCreacion).getTime();
-      return fb - fa;
+      // urgentes arriba
+      if (a.urgente && !b.urgente) return -1;
+      if (!a.urgente && b.urgente) return 1;
+
+      const fa = a.fechaLimite ? new Date(a.fechaLimite).getTime() : null;
+      const fb = b.fechaLimite ? new Date(b.fechaLimite).getTime() : null;
+
+      if (fa && fb) {
+        return fa - fb;
+      }
+      if (fa && !fb) return -1;
+      if (!fa && fb) return 1;
+
+      const ca = new Date(a.fechaCreacion).getTime();
+      const cb = new Date(b.fechaCreacion).getTime();
+      return cb - ca;
     });
 
     return lista;
   }, [pedidos, productos]);
+
+  const resumen = useMemo(() => {
+    let activos = 0;
+    let vencidos = 0;
+    let paraHoy = 0;
+    let proximos3 = 0;
+
+    pedidosEnriquecidos.forEach((ped) => {
+      const esCerrado =
+        ped.estado === "entregado" || ped.estado === "cancelado";
+
+      if (!esCerrado) {
+        activos++;
+      }
+
+      if (!ped.fechaLimite || esCerrado) return;
+
+      const fLim = new Date(ped.fechaLimite);
+      fLim.setHours(0, 0, 0, 0);
+      const diffDias = Math.round(
+        (fLim.getTime() - hoyMs) / (1000 * 60 * 60 * 24)
+      );
+
+      if (diffDias < 0 && !esCerrado) {
+        vencidos++;
+      } else if (diffDias === 0 && !esCerrado) {
+        paraHoy++;
+      } else if (diffDias > 0 && diffDias <= 3 && !esCerrado) {
+        proximos3++;
+      }
+    });
+
+    return { activos, vencidos, paraHoy, proximos3 };
+  }, [pedidosEnriquecidos, hoyMs]);
 
   async function cambiarEstado(pedido, nuevoEstado) {
     setError("");
@@ -136,6 +211,17 @@ export default function Pedidos() {
     }
   }
 
+  async function toggleUrgente(pedido) {
+    setError("");
+    setMensaje("");
+    try {
+      await updatePedido(pedido.id, { urgente: !pedido.urgente });
+      await load();
+    } catch (e) {
+      setError(e.message || "Error actualizando urgencia");
+    }
+  }
+
   return (
     <div>
       <h1>Pedidos</h1>
@@ -143,6 +229,14 @@ export default function Pedidos() {
       {loading && <p>Cargando...</p>}
       {error && <p style={{ color: "red" }}>{error}</p>}
       {mensaje && <p style={{ color: "green" }}>{mensaje}</p>}
+
+      <h2>Resumen rápido</h2>
+      <ul>
+        <li>Pedidos activos: {resumen.activos}</li>
+        <li>Vencidos: {resumen.vencidos}</li>
+        <li>Para hoy: {resumen.paraHoy}</li>
+        <li>Próximos 3 días: {resumen.proximos3}</li>
+      </ul>
 
       <h2>Nuevo pedido</h2>
       <form onSubmit={onSubmit}>
@@ -194,64 +288,122 @@ export default function Pedidos() {
           />
         </div>
 
+        <div>
+          <label>Fecha límite de entrega</label>
+          <input
+            type="date"
+            name="fechaLimite"
+            value={form.fechaLimite}
+            onChange={onFormChange}
+          />
+        </div>
+
+        <div>
+          <label>Canal (Instagram, Feria, WhatsApp, etc.)</label>
+          <input
+            name="canal"
+            value={form.canal}
+            onChange={onFormChange}
+            placeholder="Ej: Instagram, Feria, Local..."
+          />
+        </div>
+
+        <div>
+          <label>
+            <input
+              type="checkbox"
+              name="urgente"
+              checked={form.urgente}
+              onChange={onFormChange}
+            />{" "}
+            Marcar como urgente
+          </label>
+        </div>
+
         <button type="submit">Crear pedido</button>
         <button type="button" onClick={load} style={{ marginLeft: 8 }}>
           Recargar
         </button>
       </form>
 
-      <h2>Lista de pedidos</h2>
+      <h2>Lista de pedidos activos</h2>
       <table border="1" cellPadding="8">
         <thead>
           <tr>
+            <th>Urgente</th>
             <th>Fecha</th>
             <th>Cliente</th>
             <th>Producto</th>
             <th>Cantidad</th>
             <th>Estado</th>
+            <th>Canal</th>
             <th>Notas</th>
-            <th>Fecha entrega</th>
+            <th>Fecha límite</th>
           </tr>
         </thead>
         <tbody>
-          {pedidosEnriquecidos.map((ped) => (
-            <tr key={ped.id}>
-              <td>
-                {new Date(ped.fechaCreacion).toLocaleString("es-AR", {
-                  dateStyle: "short",
-                  timeStyle: "short",
-                })}
-              </td>
-              <td>{ped.cliente || "-"}</td>
-              <td>{ped.productoNombre}</td>
-              <td>{ped.cantidad}</td>
-              <td>
-                <select
-                  value={ped.estado}
-                  onChange={(e) => cambiarEstado(ped, e.target.value)}
-                >
-                  {ESTADOS.map((estado) => (
-                    <option key={estado} value={estado}>
-                      {estado}
-                    </option>
-                  ))}
-                </select>
-              </td>
-              <td>{ped.notas || "-"}</td>
-              <td>
-                {ped.fechaEntrega
-                  ? new Date(ped.fechaEntrega).toLocaleString("es-AR", {
-                      dateStyle: "short",
-                      timeStyle: "short",
-                    })
-                  : "-"}
-              </td>
-            </tr>
-          ))}
+          {pedidosEnriquecidos.map((ped) => {
+            const fLim = ped.fechaLimite ? new Date(ped.fechaLimite) : null;
+            let esVencido = false;
+            if (fLim) {
+              fLim.setHours(0, 0, 0, 0);
+              esVencido = fLim.getTime() < hoyMs;
+            }
+
+            const rowStyle = esVencido
+            ? {
+                backgroundColor: "#fecaca",   // rojo un poco más fuerte
+                color: "#7f1d1d",             // texto rojo oscuro
+                fontWeight: "600",            // un poquito más grueso
+                }
+            : undefined;
+
+
+            return (
+              <tr key={ped.id} style={rowStyle}>
+                <td>
+                  <input
+                    type="checkbox"
+                    checked={ped.urgente}
+                    onChange={() => toggleUrgente(ped)}
+                    title="Marcar/desmarcar urgente"
+                  />
+                </td>
+                <td>
+                  {new Date(ped.fechaCreacion).toLocaleString("es-AR", {
+                    dateStyle: "short",
+                    timeStyle: "short",
+                  })}
+                </td>
+                <td>{ped.cliente || "-"}</td>
+                <td>{ped.productoNombre}</td>
+                <td>{ped.cantidad}</td>
+                <td>
+                  <select
+                    value={ped.estado}
+                    onChange={(e) => cambiarEstado(ped, e.target.value)}
+                  >
+                    {ESTADOS.map((estado) => (
+                      <option key={estado} value={estado}>
+                        {estado}
+                      </option>
+                    ))}
+                  </select>
+                </td>
+                <td>{ped.canal || "-"}</td>
+                <td>{ped.notas || "-"}</td>
+                <td>
+                  {ped.fechaLimite
+                    ? new Date(ped.fechaLimite).toLocaleDateString("es-AR")
+                    : "-"}
+                </td>
+              </tr>
+            );
+          })}
 
           {!loading && pedidosEnriquecidos.length === 0 && (
             <tr>
-              <td colSpan="7">No hay pedidos cargados.</td>
+              <td colSpan="9">No hay pedidos activos.</td>
             </tr>
           )}
         </tbody>
