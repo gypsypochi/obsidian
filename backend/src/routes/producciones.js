@@ -26,7 +26,7 @@ router.get("/", (req, res) => {
 // POST /producciones - registrar una producción
 router.post("/", (req, res) => {
   try {
-    const { productoId, cantidad } = req.body;
+    const { productoId, cantidad, unidadesBuenas } = req.body;
 
     if (!productoId) {
       return res.status(400).json({ error: "productoId es obligatorio" });
@@ -57,6 +57,24 @@ router.post("/", (req, res) => {
     // Asumimos mismo tipoProduccion para todas las filas de receta de ese producto
     const tipoProduccion = recetasProducto[0].tipoProduccion || "unidad";
 
+    // Si es lote, unidadesBuenas es obligatorio (porque el rendimiento es variable)
+    let unidadesBuenasNum = undefined;
+    if (tipoProduccion === "lote") {
+      if (unidadesBuenas === undefined) {
+        return res.status(400).json({
+          error:
+            "Para productos de tipo 'lote' tenés que indicar cuántas unidades buenas vas a sumar (unidadesBuenas)",
+        });
+      }
+      unidadesBuenasNum = Number(unidadesBuenas);
+      if (Number.isNaN(unidadesBuenasNum) || unidadesBuenasNum <= 0) {
+        return res.status(400).json({
+          error:
+            "unidadesBuenas debe ser un número mayor a 0 para productos de tipo 'lote'",
+        });
+      }
+    }
+
     // Calculamos requerimientos de materiales
     const requerimientos = recetasProducto.map((r) => {
       const material = materiales.find((m) => m.id === r.materialId);
@@ -67,7 +85,10 @@ router.post("/", (req, res) => {
         );
       }
 
-      const factor = cantidad; // unidades o lotes
+      // factor = cantidad de producción:
+      // - si es 'unidad' => cantidad de unidades
+      // - si es 'lote'   => cantidad de lotes/planchas
+      const factor = cantidad;
       const cantidadNecesaria = (r.cantidad || 0) * factor;
 
       return {
@@ -106,8 +127,18 @@ router.post("/", (req, res) => {
 
     // Aumentar stock del producto
     const productoIndex = productos.findIndex((p) => p.id === productoId);
+
+    let incrementoStock;
+    if (tipoProduccion === "lote") {
+      // En lote, sumamos la cantidad real de unidades buenas
+      incrementoStock = unidadesBuenasNum;
+    } else {
+      // En unidad, 1 producción = 1 unidad
+      incrementoStock = cantidad;
+    }
+
     productos[productoIndex].stock =
-      (productos[productoIndex].stock || 0) + cantidad;
+      (productos[productoIndex].stock || 0) + incrementoStock;
 
     // Guardar cambios
     writeMaterials(materiales);
@@ -118,8 +149,10 @@ router.post("/", (req, res) => {
     const nuevaProduccion = {
       id: `prodop-${Date.now()}`,
       productoId,
-      cantidad,
+      cantidad,           // unidades o lotes, según tipoProduccion
       tipoProduccion,
+      unidadesBuenas: tipoProduccion === "lote" ? incrementoStock : null,
+      incrementoStock,
       fecha: new Date().toISOString(),
       materialesUsados: requerimientos.map((r) => ({
         materialId: r.materialId,

@@ -1,32 +1,53 @@
 // frontend/src/pages/produccion.jsx
 import { useEffect, useState } from "react";
-import { getProductos, createProduccion } from "../api";
+import { getProductos, getRecetas, createProduccion } from "../api";
 
 export default function Produccion() {
   const [productos, setProductos] = useState([]);
+  const [recetas, setRecetas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [mensaje, setMensaje] = useState("");
 
   const [productoId, setProductoId] = useState("");
-  const [cantidad, setCantidad] = useState(1);
+  const [cantidad, setCantidad] = useState(1); // unidades o lotes
+  const [unidadesBuenas, setUnidadesBuenas] = useState(""); // solo para lote
+  const [tipoProduccion, setTipoProduccion] = useState("unidad");
 
-  async function loadProductos() {
+  async function loadProductosYRecetas() {
     try {
       setError("");
       setLoading(true);
-      const data = await getProductos();
-      setProductos(data);
+      const [prodData, recData] = await Promise.all([
+        getProductos(),
+        getRecetas(),
+      ]);
+      setProductos(prodData);
+      setRecetas(recData);
     } catch (e) {
-      setError(e.message || "Error cargando productos");
+      setError(e.message || "Error cargando datos");
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    loadProductos();
+    loadProductosYRecetas();
   }, []);
+
+  // Cada vez que cambia el producto seleccionado, determinamos su tipoProduccion
+  useEffect(() => {
+    if (!productoId) {
+      setTipoProduccion("unidad");
+      return;
+    }
+    const recetaProd = recetas.find((r) => r.productoId === productoId);
+    if (recetaProd && recetaProd.tipoProduccion) {
+      setTipoProduccion(recetaProd.tipoProduccion);
+    } else {
+      setTipoProduccion("unidad");
+    }
+  }, [productoId, recetas]);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -39,31 +60,49 @@ export default function Produccion() {
     }
 
     const cantNum = Number(cantidad);
-    if (isNaN(cantNum) || cantNum <= 0) {
+    if (Number.isNaN(cantNum) || cantNum <= 0) {
       setError("Cantidad debe ser un número mayor a 0");
       return;
     }
 
+    let payload = {
+      productoId,
+      cantidad: cantNum,
+    };
+
+    if (tipoProduccion === "lote") {
+      const ubNum = Number(unidadesBuenas);
+      if (Number.isNaN(ubNum) || ubNum <= 0) {
+        setError(
+          "Para productos por lote, indicá cuántas unidades buenas vas a sumar"
+        );
+        return;
+      }
+      payload.unidadesBuenas = ubNum;
+    }
+
     try {
-      const resp = await createProduccion({
-        productoId,
-        cantidad: cantNum,
-      });
+      const resp = await createProduccion(payload);
 
       const nombreProd =
         productos.find((p) => p.id === productoId)?.nombre || "Producto";
 
-      setMensaje(
-        `Producción registrada: ${cantNum} (${resp.produccion.tipoProduccion}) de "${nombreProd}". Stock actual del producto: ${resp.productoActualizado.stock}.`
-      );
+      if (resp.produccion.tipoProduccion === "lote") {
+        setMensaje(
+          `Producción registrada: ${resp.produccion.cantidad} lote(s)/plancha(s) de "${nombreProd}", sumando ${resp.produccion.unidadesBuenas} unidades buenas. Stock actual del producto: ${resp.productoActualizado.stock}.`
+        );
+      } else {
+        setMensaje(
+          `Producción registrada: ${resp.produccion.cantidad} unidad(es) de "${nombreProd}". Stock actual del producto: ${resp.productoActualizado.stock}.`
+        );
+      }
 
       // Refrescamos productos para ver el nuevo stock en la tabla
-      await loadProductos();
+      await loadProductosYRecetas();
       setCantidad(1);
+      setUnidadesBuenas("");
     } catch (e) {
-      // Si el backend mandó detalles de faltantes, los mostramos
-      const msgBase = e.message || "Error registrando producción";
-      setError(msgBase);
+      setError(e.message || "Error registrando producción");
     }
   }
 
@@ -95,25 +134,49 @@ export default function Produccion() {
         </div>
 
         <div>
-          <label>Cantidad a producir</label>
-          <input
-            type="number"
-            value={cantidad}
-            onChange={(e) => setCantidad(e.target.value)}
-            min="1"
-          />
-          <p style={{ fontSize: 12 }}>
-            Para productos con receta tipo <b>unidad</b>, la cantidad es en
-            unidades.  
-            Para recetas tipo <b>lote</b>, la cantidad es en lotes (ej: 3 lotes
-            de stickers).
-          </p>
+          {tipoProduccion === "lote" ? (
+            <>
+              <label>Cantidad de lotes / planchas usadas</label>
+              <input
+                type="number"
+                value={cantidad}
+                onChange={(e) => setCantidad(e.target.value)}
+                min="1"
+              />
+              <p style={{ fontSize: 12 }}>
+                Esta cantidad se usa para calcular el consumo de materiales.
+              </p>
+
+              <label>Unidades buenas a sumar al stock</label>
+              <input
+                type="number"
+                value={unidadesBuenas}
+                onChange={(e) => setUnidadesBuenas(e.target.value)}
+                min="1"
+              />
+              <p style={{ fontSize: 12 }}>
+                Acá ponés cuántos imanes/stickers buenos salieron realmente
+                (ej: 8, 9, 30, 31, 32...).
+              </p>
+            </>
+          ) : (
+            <>
+              <label>Cantidad a producir (unidades)</label>
+              <input
+                type="number"
+                value={cantidad}
+                onChange={(e) => setCantidad(e.target.value)}
+                min="1"
+              />
+              <p style={{ fontSize: 12 }}>
+                Para productos tipo <b>unidad</b>, esta cantidad es la que se
+                suma al stock.
+              </p>
+            </>
+          )}
         </div>
 
         <button type="submit">Registrar producción</button>
-        <button type="button" onClick={loadProductos} style={{ marginLeft: 8 }}>
-          Recargar productos
-        </button>
       </form>
 
       <h2>Productos (vista rápida de stock)</h2>
