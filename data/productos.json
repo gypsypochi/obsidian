@@ -16,5 +16,14 @@
     "stock": 5,
     "unidad": "unidad",
     "proveedorId": "yo"
+  },
+  {
+    "id": "prod-1766762332322",
+    "nombre": "Sticker 5cm",
+    "categoria": "stickers",
+    "precio": 250,
+    "stock": 100,
+    "unidad": "unidad",
+    "proveedorId": "Propio"
   }
 ]

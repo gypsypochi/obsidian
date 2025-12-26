@@ -28,6 +28,11 @@ export default function Nav() {
       <NavLink to="/productos" style={linkStyle}>
         Productos
       </NavLink>
+
+      <NavLink to="/recetas" style={linkStyle}>
+        Recetas
+      </NavLink>
+
     </nav>
   );
 }

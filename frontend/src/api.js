@@ -119,3 +119,43 @@ export async function deleteProducto(id) {
   if (!res.ok) throw new Error(data?.error || "Error al eliminar producto");
   return data;
 }
+
+export async function getRecetas() {
+  const res = await fetch(`${API_URL}/recetas`);
+  if (!res.ok) throw new Error("Error al cargar recetas");
+  return res.json();
+}
+
+export async function createReceta(receta) {
+  const res = await fetch(`${API_URL}/recetas`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(receta),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error || "Error al crear receta");
+  return data;
+}
+
+export async function updateReceta(id, updates) {
+  const res = await fetch(`${API_URL}/recetas/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error || "Error al actualizar receta");
+  return data;
+}
+
+export async function deleteReceta(id) {
+  const res = await fetch(`${API_URL}/recetas/${id}`, {
+    method: "DELETE",
+  });
+
+  const data = await res.json();
+  if (!res.ok) throw new Error(data?.error || "Error al eliminar receta");
+  return data;
+}

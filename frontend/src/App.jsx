@@ -5,6 +5,7 @@ import Materiales from "./pages/materiales.jsx";
 import Proveedores from "./pages/proveedores.jsx";
 import Productos from "./pages/productos.jsx";
 import Nav from "./components/nav.jsx";
+import Recetas from "./pages/recetas.jsx";
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
         <Route path="/materiales" element={<Materiales />} />
         <Route path="/proveedores" element={<Proveedores />} />
         <Route path="/productos" element={<Productos />} />
+        <Route path="/recetas" element={<Recetas />} />   {/* NUEVA */}
         <Route path="*" element={<p>404 – Página no encontrada</p>} />
       </Routes>
     </>

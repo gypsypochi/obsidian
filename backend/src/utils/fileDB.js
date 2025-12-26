@@ -3,7 +3,8 @@ const path = require("path");
 
 const materialesPath = path.join(__dirname, "../../../data/materiales.json");
 const proveedoresPath = path.join(__dirname, "../../../data/proveedores.json");
-const productosPath = path.join(__dirname, "../../../data/productos.json"); // NUEVO
+const productosPath = path.join(__dirname, "../../../data/productos.json");
+const recetasPath = path.join(__dirname, "../../../data/recetas.json"); // NUEVO
 
 function readJson(filePath) {
   const raw = fs.readFileSync(filePath, "utf-8");
@@ -30,14 +31,21 @@ function writeProveedores(proveedores) {
   writeJson(proveedoresPath, proveedores);
 }
 
-// NUEVO
 function readProductos() {
   return readJson(productosPath);
 }
 
-// NUEVO
 function writeProductos(productos) {
   writeJson(productosPath, productos);
+}
+
+// --- RECETAS ---
+function readRecetas() {
+  return readJson(recetasPath);
+}
+
+function writeRecetas(recetas) {
+  writeJson(recetasPath, recetas);
 }
 
 module.exports = {
@@ -45,6 +53,8 @@ module.exports = {
   writeMaterials,
   readProveedores,
   writeProveedores,
-  readProductos,     // NUEVO
-  writeProductos,    // NUEVO
+  readProductos,
+  writeProductos,
+  readRecetas,    // NUEVO
+  writeRecetas,   // NUEVO
 };

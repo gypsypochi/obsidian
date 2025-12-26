@@ -12,5 +12,12 @@
     "categoria": "vinilos",
     "stock": 10,
     "unidad": "planchas"
+  },
+  {
+    "id": "mat-1766762361853",
+    "nombre": "Vinilo Blanco",
+    "categoria": "vinilos",
+    "stock": 2,
+    "unidad": "planchas"
   }
 ]
